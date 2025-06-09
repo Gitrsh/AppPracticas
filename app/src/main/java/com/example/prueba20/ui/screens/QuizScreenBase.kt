@@ -14,29 +14,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.prueba20.data.FirebaseRepository
+import com.example.prueba20.data.model.ResultadoNivel
 import com.example.prueba20.ui.theme.AppTheme
 import com.example.prueba20.ui.theme.AppTopBar
 import com.example.prueba20.ui.theme.PrimaryButton
 import com.example.prueba20.ui.theme.SecondaryButton
 import com.example.prueba20.viewmodel.UserViewModel
 import kotlin.math.roundToInt
-
-data class ResultLevel(
-    val title: String,
-    val message: String,
-    val color: Color,
-    val emoji: String,
-    val gradientColors: List<Color>
-)
+import com.example.prueba20.util.QuizSessionState
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,9 +49,11 @@ fun QuizScreenBase(
     }
 
     var currentQuestionIndex by remember { mutableStateOf(0) }
-    var numericAnswer by remember { mutableStateOf(50f) }
+    var numericAnswer by remember { mutableStateOf<Float?>(null) }
     val responses = remember { mutableStateMapOf<Int, Int>() }
     var quizFinished by remember { mutableStateOf(false) }
+    var hasInteracted by remember { mutableStateOf(false) }
+    val user by userViewModel.user.collectAsState()
 
     val currentQuestion = questions.getOrNull(currentQuestionIndex) ?: ""
 
@@ -107,38 +103,30 @@ fun QuizScreenBase(
                         defaultElevation = AppTheme.Elevation.sm
                     )
                 ) {
-                    Column(
-                        modifier = Modifier.padding(AppTheme.Spacing.lg)
-                    ) {
+                    Column(modifier = Modifier.padding(AppTheme.Spacing.lg)) {
                         Text(
                             text = currentQuestion,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                             modifier = Modifier.padding(bottom = AppTheme.Spacing.md)
                         )
 
-                        val sliderColor: Color
-                        val emoji: String
+                        val sliderColor: Color = numericAnswer?.let {
+                            when (it.roundToInt()) {
+                                in 0..30 -> MaterialTheme.colorScheme.error
+                                in 40..70 -> Color(0xFFFF9800)
+                                in 80..100 -> Color(0xFF4CAF50)
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        } ?: MaterialTheme.colorScheme.onSurfaceVariant
 
-                        when (numericAnswer.roundToInt()) {
-                            in 0..30 -> {
-                                sliderColor = MaterialTheme.colorScheme.error
-                                emoji = "\uD83D\uDE1E"
+                        val emoji: String = numericAnswer?.let {
+                            when (it.roundToInt()) {
+                                in 0..30 -> "😞"
+                                in 40..70 -> "😐"
+                                in 80..100 -> "🙂"
+                                else -> ""
                             }
-                            in 40..70 -> {
-                                sliderColor = Color(0xFFFF9800)
-                                emoji = "\uD83D\uDE10"
-                            }
-                            in 80..100 -> {
-                                sliderColor = Color(0xFF4CAF50)
-                                emoji = "\uD83D\uDE42"
-                            }
-                            else -> {
-                                sliderColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                emoji = ""
-                            }
-                        }
+                        } ?: ""
 
                         Column(
                             modifier = Modifier
@@ -146,12 +134,15 @@ fun QuizScreenBase(
                                 .padding(vertical = AppTheme.Spacing.md)
                         ) {
                             Slider(
-                                value = numericAnswer,
-                                onValueChange = { numericAnswer = it },
+                                value = numericAnswer ?: 0f,
+                                onValueChange = {
+                                    numericAnswer = it
+                                    hasInteracted = true
+                                },
                                 valueRange = 0f..100f,
                                 steps = 9,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = sliderColor,
+                                    thumbColor = if (hasInteracted) sliderColor else Color.Transparent,
                                     activeTrackColor = sliderColor,
                                     inactiveTrackColor = sliderColor.copy(alpha = 0.3f)
                                 ),
@@ -166,7 +157,7 @@ fun QuizScreenBase(
                                     Text(
                                         text = "$value",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = if (numericAnswer.roundToInt() == value) sliderColor
+                                        color = if (numericAnswer?.roundToInt() == value) sliderColor
                                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )
                                 }
@@ -184,19 +175,31 @@ fun QuizScreenBase(
                                     )
                                     .padding(vertical = AppTheme.Spacing.sm)
                             ) {
-                                Text(
-                                    "Tu respuesta: ${numericAnswer.roundToInt()}% $emoji",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = sliderColor
+                                if (!hasInteracted) {
+                                    Text(
+                                        "Selecciona un valor para continuar",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
                                     )
-                                )
+                                } else {
+                                    Text(
+                                        "Tu respuesta: ${numericAnswer!!.roundToInt()}% $emoji",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = sliderColor
+                                        )
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(AppTheme.Spacing.lg))
+
+                val isEnabled = hasInteracted && numericAnswer != null
 
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -207,59 +210,73 @@ fun QuizScreenBase(
                         onClick = {
                             if (currentQuestionIndex > 0) currentQuestionIndex--
                         },
-                        modifier = Modifier.weight(1f),
-                        enabled = currentQuestionIndex > 0
+                        modifier = Modifier.weight(1f)
                     )
 
                     Spacer(modifier = Modifier.width(AppTheme.Spacing.md))
 
-                    PrimaryButton(
-                        text = if (currentQuestionIndex == questions.lastIndex) "Finalizar" else "Siguiente",
-                        onClick = {
-                            responses[currentQuestionIndex] = numericAnswer.roundToInt()
-                            numericAnswer = 50f
+                    Box(modifier = Modifier.weight(1f).alpha(if (isEnabled) 1f else 0.5f)) {
+                        PrimaryButton(
+                            text = if (currentQuestionIndex == questions.lastIndex) "Finalizar" else "Siguiente",
+                            onClick = {
+                                if (isEnabled) {
+                                    responses[currentQuestionIndex] = numericAnswer!!.roundToInt()
 
-                            if (currentQuestionIndex < questions.lastIndex) {
-                                currentQuestionIndex++
-                            } else {
-                                quizFinished = true
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+                                    if (currentQuestionIndex < questions.lastIndex) {
+                                        currentQuestionIndex++
+                                        numericAnswer = null
+                                        hasInteracted = false
+                                    } else {
+                                        val numericResponses = responses.map { it.value }
+                                        val average = if (numericResponses.isNotEmpty()) numericResponses.sum() / numericResponses.size else 0
+
+                                        Log.d("QuizSession", "Guardando media: $average")
+                                        Log.d("QuizSession", "Respuestas: $numericResponses")
+
+                                        QuizSessionState.sessionResults.add(average)
+                                        QuizSessionState.respuestasPorTest.add(numericResponses)
+
+                                        val email = user?.email ?: "anonimo@desconocido"
+                                        FirebaseRepository.guardarRespuestas(
+                                            email = email,
+                                            respuestas = numericResponses,
+                                            onSuccess = { Log.d("Firestore", "Guardado exitosamente") },
+                                            onError = { e -> Log.e("Firestore", "Error al guardar", e) }
+                                        )
+
+                                        quizFinished = true
+                                    }
+                                }
+
+                                        if (currentQuestionIndex == questions.lastIndex) {
+
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             } else {
-                val numericResponses = responses.values.filterIsInstance<Int>().toList()
-                val average = if (numericResponses.isNotEmpty()) numericResponses.sum() / numericResponses.size else 0
+                val lastAverage = QuizSessionState.sessionResults.lastOrNull() ?: 0
 
-                val (title, message, color, emoji, gradientColors) = when (average) {
-                    in 0..20 -> ResultLevel("Necesitas mejorar", "Tu nivel de actividad física es muy bajo. Te recomendamos comenzar con pequeñas rutinas diarias y aumentar gradualmente.", MaterialTheme.colorScheme.error, "\uD83D\uDE14", listOf(Color(0xFFFF5252), Color(0xFFFF867F)))
-                    in 21..40 -> ResultLevel("Puedes mejorar", "Estás comenzando, pero hay mucho margen para mejorar. Intenta incorporar más actividad física en tu rutina.", Color(0xFFFF9800), "\uD83D\uDE10", listOf(Color(0xFFFF9800), Color(0xFFFFC46B)))
-                    in 41..50 -> ResultLevel("Estás en el camino", "Vas por buen camino, pero aún puedes mejorar. Sigue esforzándote y verás los resultados.", Color(0xFFFFC107), "\uD83D\uDE42", listOf(Color(0xFFFFC107), Color(0xFFFFEB3B)))
-                    in 51..75 -> ResultLevel("¡Buen trabajo!", "Mantienes un buen nivel de actividad física. Sigue así y considera nuevos desafíos.", Color(0xFF4CAF50), "\uD83D\uDE0A", listOf(Color(0xFF4CAF50), Color(0xFF8BC34A)))
-                    in 76..90 -> ResultLevel("¡Excelente!", "Tu nivel de actividad física es muy bueno. Eres un ejemplo a seguir para otros.", Color(0xFF2196F3), "\uD83D\uDE0D", listOf(Color(0xFF2196F3), Color(0xFF64B5F6)))
-                    else -> ResultLevel("¡Increíble!", "Eres un atleta. Tu nivel de actividad física es excepcional. ¡Sigue inspirando a otros!", Color(0xFF9C27B0), "\uD83E\uDD29", listOf(Color(0xFF9C27B0), Color(0xFFBA68C8)))
+                val resultado = when (lastAverage) {
+                    in 0..20 -> ResultadoNivel("Necesitas mejorar", "Tu nivel de actividad física es muy bajo. Te recomendamos comenzar con pequeñas rutinas diarias y aumentar gradualmente.", MaterialTheme.colorScheme.error, "😔", listOf(Color(0xFFFF5252), Color(0xFFFF867F)))
+                    in 21..40 -> ResultadoNivel("Puedes mejorar", "Estás comenzando, pero hay mucho margen para mejorar. Intenta incorporar más actividad física en tu rutina.", Color(0xFFFF9800), "😐", listOf(Color(0xFFFF9800), Color(0xFFFFC46B)))
+                    in 41..50 -> ResultadoNivel("Estás en el camino", "Vas por buen camino, pero aún puedes mejorar. Sigue esforzándote y verás los resultados.", Color(0xFFFFC107), "🙂", listOf(Color(0xFFFFC107), Color(0xFFFFEB3B)))
+                    in 51..75 -> ResultadoNivel("¡Buen trabajo!", "Mantienes un buen nivel de actividad física. Sigue así y considera nuevos desafíos.", Color(0xFF4CAF50), "😊", listOf(Color(0xFF4CAF50), Color(0xFF8BC34A)))
+                    in 76..90 -> ResultadoNivel("¡Excelente!", "Tu nivel de actividad física es muy bueno. Eres un ejemplo a seguir para otros.", Color(0xFF2196F3), "😍", listOf(Color(0xFF2196F3), Color(0xFF64B5F6)))
+                    else -> ResultadoNivel("¡Increíble!", "Eres un atleta. Tu nivel de actividad física es excepcional. ¡Sigue inspirando a otros!", Color(0xFF9C27B0), "🤩", listOf(Color(0xFF9C27B0), Color(0xFFBA68C8)))
                 }
 
-                val user = userViewModel.user.collectAsState().value
-                val email = user?.email ?: "anonimo@desconocido"
-
-                LaunchedEffect(Unit) {
-                    FirebaseRepository.guardarRespuestas(
-                        email = email,
-                        respuestas = numericResponses,
-                        onSuccess = { Log.d("Firestore", "Guardado exitosamente") },
-                        onError = { e -> Log.e("Firestore", "Error al guardar", e) }
-                    )
-                }
+                val (title, message, color, emoji, gradientColors) = resultado
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(AppTheme.Spacing.lg)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Resultado visual
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -270,7 +287,7 @@ fun QuizScreenBase(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(emoji, style = MaterialTheme.typography.displayLarge)
-                            Text("$average%", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = Color.White)
+                            Text("$lastAverage%", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = Color.White)
                             Text(title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = Color.White)
                         }
                     }
@@ -286,7 +303,6 @@ fun QuizScreenBase(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Detalles de respuestas
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -326,31 +342,27 @@ fun QuizScreenBase(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Botón volver al inicio
                     PrimaryButton(
-                        text = "Volver al inicio",
+                        text = "Elegir otro test",
                         onClick = {
-                            navController.navigate("home") {
+                            navController.navigate("quiz_selection") {
                                 popUpTo("quiz") { inclusive = true }
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
                             .height(50.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // ✅ Botón de recomendaciones
                     SecondaryButton(
-                        text = "Ver recomendaciones",
+                        text = "Ver media de todos los tests",
                         onClick = {
-                            navController.navigate("recomendaciones/$average")
+                            navController.navigate("media_result")
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp)
                             .height(50.dp)
                     )
                 }

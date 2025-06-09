@@ -15,6 +15,7 @@ import com.google.accompanist.navigation.animation.composable
 import androidx.compose.runtime.getValue
 import androidx.navigation.compose.composable
 import com.example.prueba20.ui.components.FullScreenLoader
+import com.example.prueba20.ui.screens.MediaResultScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalAnimationApi::class)
@@ -130,6 +131,10 @@ fun ComposeCuestionarioApp(userViewModel: UserViewModel, isAdmin: Boolean = fals
                 userViewModel = userViewModel,
                 navController = navController
             )
+        }
+
+        composable("media_result") {
+            MediaResultScreen(navController = navController)
         }
 
 
