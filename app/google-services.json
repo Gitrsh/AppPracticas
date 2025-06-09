@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "915737353822",
+    "project_id": "alfabetizacionfisica-4337f",
+    "storage_bucket": "alfabetizacionfisica-4337f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915737353822:android:967fb83f565004019edecf",
+        "android_client_info": {
+          "package_name": "com.example.prueba20"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0b8wT7j3I8qTm5_idDpeFIffhdCOhBUs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
