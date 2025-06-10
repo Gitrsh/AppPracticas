@@ -22,11 +22,9 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
 import java.time.ZoneId
+import androidx.compose.ui.viewinterop.AndroidView
+import com.hbb20.CountryCodePicker
 
-/**
- * Pantalla de registro con campos para nombre, email, contraseña y fecha de nacimiento.
- * Valida los datos antes de registrar al usuario en Firebase.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -41,6 +39,7 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var birthDate by remember { mutableStateOf<LocalDate?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var paisSeleccionado by remember { mutableStateOf("") }
 
     val datePickerState = rememberDatePickerState()
 
@@ -141,7 +140,6 @@ fun RegisterScreen(
                 )
                 Spacer(modifier = Modifier.height(AppTheme.Spacing.md))
 
-                // Contraseña
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -152,7 +150,6 @@ fun RegisterScreen(
                 )
                 Spacer(modifier = Modifier.height(AppTheme.Spacing.md))
 
-                // Fecha de nacimiento
                 OutlinedTextField(
                     value = birthDate?.toString() ?: "",
                     onValueChange = {},
@@ -162,6 +159,28 @@ fun RegisterScreen(
                         .fillMaxWidth()
                         .clickable { showDatePicker = true }
                 )
+
+                Spacer(modifier = Modifier.height(AppTheme.Spacing.md))
+
+                Text("Selecciona tu país:", style = MaterialTheme.typography.labelLarge)
+
+                AndroidView(
+                    factory = { context ->
+                        CountryCodePicker(context).apply {
+
+                            setOnCountryChangeListener {
+                                paisSeleccionado = selectedCountryName
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                )
+
+                if (paisSeleccionado.isNotBlank()) {
+                    Text("País seleccionado: $paisSeleccionado")
+                }
 
                 Spacer(modifier = Modifier.height(AppTheme.Spacing.lg))
 
@@ -177,8 +196,11 @@ fun RegisterScreen(
                             birthDate == null ->
                                 userViewModel.setError("Por favor selecciona tu fecha de nacimiento")
 
+                            paisSeleccionado.isBlank() ->
+                                userViewModel.setError("Selecciona un país válido")
+
                             else -> userViewModel.register(
-                                name, email, password, birthDate.toString()
+                                name, email, password, birthDate.toString(), paisSeleccionado
                             ) {}
                         }
                     },
@@ -196,5 +218,4 @@ fun RegisterScreen(
         }
     }
 }
-
 

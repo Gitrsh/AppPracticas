@@ -19,12 +19,13 @@ object FirebaseRepository {
         email: String,
         password: String,
         birthDate: String,
+        pais: String,
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnSuccessListener {
-                guardarUsuario(name, email, birthDate, onSuccess, onError)
+                guardarUsuario(name, email, birthDate, pais, onSuccess, onError)
             }
             .addOnFailureListener { e ->
                 Log.e("FirebaseAuth", "Error al registrar usuario", e)
@@ -48,18 +49,20 @@ object FirebaseRepository {
                 onError(e)
             }
     }
-    
+
     fun guardarUsuario(
         name: String,
         email: String,
         birthDate: String,
+        pais: String,
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
         val data = mapOf(
             "name" to name,
             "email" to email,
-            "birthDate" to birthDate
+            "birthDate" to birthDate,
+            "pais" to pais
         )
 
         db.collection("usuarios")
@@ -78,6 +81,7 @@ object FirebaseRepository {
     fun guardarRespuestas(
         email: String,
         respuestas: List<Int>,
+        tipoTest: String,  // Guarddamos este parametro nuevo para saber el tipo de test que es para guardarlo en su coleccion
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
@@ -87,10 +91,10 @@ object FirebaseRepository {
             "timestamp" to System.currentTimeMillis()
         )
 
-        db.collection("respuestas")
+        db.collection(tipoTest)
             .add(data)
             .addOnSuccessListener {
-                Log.d("Firestore", "Respuestas guardadas")
+                Log.d("Firestore", "Respuestas guardadas en colección $tipoTest")
                 onSuccess()
             }
             .addOnFailureListener { e ->

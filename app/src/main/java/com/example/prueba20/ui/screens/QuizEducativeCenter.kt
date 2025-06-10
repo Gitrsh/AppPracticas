@@ -23,6 +23,7 @@ fun QuizEducativeCenterScreen(
         questions = questions,
         userViewModel = userViewModel,
         navController = navController,
+        tipoTest = "centro_educativo", // nombre de la colección dnd se guradará
         onBack = onBack
     )
 }

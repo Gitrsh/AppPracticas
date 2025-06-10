@@ -39,6 +39,7 @@ fun QuizScreenBase(
     questions: List<String>,
     userViewModel: UserViewModel,
     navController: NavController,
+    tipoTest: String, // parametro nuevo para guardar cada test en su correspondiente colección
     onBack: () -> Unit = {}
 ) {
     if (questions.isEmpty()) {
@@ -240,10 +241,10 @@ fun QuizScreenBase(
                                         FirebaseRepository.guardarRespuestas(
                                             email = email,
                                             respuestas = numericResponses,
+                                            tipoTest = tipoTest, // ← parámetro añadido
                                             onSuccess = { Log.d("Firestore", "Guardado exitosamente") },
                                             onError = { e -> Log.e("Firestore", "Error al guardar", e) }
                                         )
-
                                         quizFinished = true
                                     }
                                 }
@@ -360,6 +361,18 @@ fun QuizScreenBase(
                         text = "Ver media de todos los tests",
                         onClick = {
                             navController.navigate("media_result")
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    PrimaryButton(
+                        text = "Comparar",
+                        onClick = {
+                            navController.navigate("comparison")
                         },
                         modifier = Modifier
                             .fillMaxWidth()

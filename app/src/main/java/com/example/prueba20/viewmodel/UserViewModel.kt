@@ -13,9 +13,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * ViewModel que gestiona autenticación, registro, logout y verificación de permisos.
- */
 class UserViewModel(
     private val prefs: UserPreferences,
     private val logDao: LoginLogDao,
@@ -51,24 +48,25 @@ class UserViewModel(
                 onSuccess = {
                     FirebaseRepository.cargarDatosUsuario(
                         email = email,
-                        onSuccess = { name, birthDate ->
+                        onSuccess = { name: String, birthDate: String ->
                             saveUser(name, email, birthDate)
                             comprobarPermisoAdmin(email) { esAdmin ->
                                 _error.value = null
                                 _isLoading.value = false
-                                _user.value = _user.value?.copy(isAdmin = esAdmin, isLoggedIn = true)
+                                _user.value =
+                                    _user.value?.copy(isAdmin = esAdmin, isLoggedIn = true)
                                 callback(true, esAdmin)
                             }
                         },
-                        onError = {
-                            _error.value = it.message
+                        onError = { e: Exception ->
+                            _error.value = e.message
                             _isLoading.value = false
                             callback(false, false)
                         }
                     )
                 },
-                onError = {
-                    _error.value = "Error de inicio de sesión: ${it.message}"
+                onError = { e ->
+                    _error.value = "Error de inicio de sesión: ${e.message}"
                     _isLoading.value = false
                     callback(false, false)
                 }
@@ -76,7 +74,14 @@ class UserViewModel(
         }
     }
 
-    fun register(name: String, email: String, password: String, birthDate: String, callback: (Boolean) -> Unit) {
+    fun register(
+        name: String,
+        email: String,
+        password: String,
+        birthDate: String,
+        pais: String,
+        onSuccess: () -> Unit
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
             FirebaseRepository.registrarUsuario(
@@ -84,16 +89,15 @@ class UserViewModel(
                 email = email,
                 password = password,
                 birthDate = birthDate,
+                pais = pais,
                 onSuccess = {
-                    saveUser(name, email, birthDate)
-                    _error.value = null
                     _isLoading.value = false
-                    callback(true)
+                    _user.value = UserData(name, email, birthDate, isLoggedIn = true)
+                    onSuccess()
                 },
-                onError = {
-                    _error.value = "Error de registro: ${it.message}"
+                onError = { e ->
                     _isLoading.value = false
-                    callback(false)
+                    _error.value = e.message
                 }
             )
         }
@@ -109,7 +113,8 @@ class UserViewModel(
 
     fun saveUserWithLog(context: Context, name: String, email: String, birthDate: String) {
         viewModelScope.launch {
-            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+            val timestamp =
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
             val loginEntry = LoginEntry(name, email, birthDate, timestamp)
             prefs.saveUserData(name, email, birthDate)
             logDao.saveLogin(loginEntry)
@@ -136,16 +141,11 @@ class UserViewModel(
     fun comprobarPermisoAdmin(userEmail: String, onResult: (Boolean) -> Unit) {
         val db = FirebaseFirestore.getInstance()
         db.collection("usuarios")
-            .whereEqualTo("email", userEmail)
+            .document(userEmail)
             .get()
-            .addOnSuccessListener { result ->
-                if (!result.isEmpty) {
-                    val document = result.documents.first()
-                    val esAdmin = document.getBoolean("permiso_admin") ?: false
-                    onResult(esAdmin)
-                } else {
-                    onResult(false)
-                }
+            .addOnSuccessListener { document ->
+                val esAdmin = document.getBoolean("permiso_admin") ?: false
+                onResult(esAdmin)
             }
             .addOnFailureListener {
                 onResult(false)
@@ -156,4 +156,3 @@ class UserViewModel(
         _error.value = message
     }
 }
-

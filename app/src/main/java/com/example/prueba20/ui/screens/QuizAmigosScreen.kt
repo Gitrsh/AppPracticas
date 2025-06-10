@@ -23,6 +23,7 @@ fun QuizAmigosScreen(
         questions = questions,
         userViewModel = userViewModel,
         navController = navController,
+        tipoTest = "amigos", // nombre de la colección dnd se guradará
         onBack = onBack
     )
 }

@@ -137,6 +137,10 @@ fun ComposeCuestionarioApp(userViewModel: UserViewModel, isAdmin: Boolean = fals
             MediaResultScreen(navController = navController)
         }
 
+        composable("comparison") {
+            ComparisonScreen(navController)
+        }
+
 
     }
 }

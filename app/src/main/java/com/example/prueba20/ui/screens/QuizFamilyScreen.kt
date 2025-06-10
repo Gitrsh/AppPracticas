@@ -23,6 +23,7 @@ fun QuizFamiliaScreen(
         questions = questions,
         userViewModel = userViewModel,
         navController = navController,
+        tipoTest = "familia", // nombre de la colección dnd se guradará
         onBack = onBack
     )
 }
