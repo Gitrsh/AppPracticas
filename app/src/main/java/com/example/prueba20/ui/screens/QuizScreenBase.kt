@@ -372,7 +372,7 @@ fun QuizScreenBase(
                     PrimaryButton(
                         text = "Comparar",
                         onClick = {
-                            navController.navigate("comparison")
+                            navController.navigate("comparison/$tipoTest")
                         },
                         modifier = Modifier
                             .fillMaxWidth()

@@ -49,6 +49,11 @@ fun RegisterScreen(
 
     var showFinalLoader by remember { mutableStateOf(false) }
 
+    // Grupo
+    var grupoSeleccionado by remember { mutableStateOf("") }
+    val listaGrupos = (1..100).map { "Grupo $it" }
+    var expanded by remember { mutableStateOf(false) }
+
     LaunchedEffect(user?.isLoggedIn) {
         if (user?.isLoggedIn == true) {
             showFinalLoader = true
@@ -167,7 +172,6 @@ fun RegisterScreen(
                 AndroidView(
                     factory = { context ->
                         CountryCodePicker(context).apply {
-
                             setOnCountryChangeListener {
                                 paisSeleccionado = selectedCountryName
                             }
@@ -180,6 +184,38 @@ fun RegisterScreen(
 
                 if (paisSeleccionado.isNotBlank()) {
                     Text("País seleccionado: $paisSeleccionado")
+                }
+
+                Spacer(modifier = Modifier.height(AppTheme.Spacing.md))
+
+                Text("Selecciona tu grupo:", style = MaterialTheme.typography.labelLarge)
+
+                Box {
+                    OutlinedTextField(
+                        value = if (grupoSeleccionado.isEmpty()) "Selecciona tu grupo" else grupoSeleccionado,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { expanded = true },
+                        enabled = false,
+                        label = { Text("Grupo") }
+                    )
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        listaGrupos.forEach { grupo ->
+                            DropdownMenuItem(
+                                text = { Text(grupo) },
+                                onClick = {
+                                    grupoSeleccionado = grupo
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(AppTheme.Spacing.lg))
@@ -199,8 +235,16 @@ fun RegisterScreen(
                             paisSeleccionado.isBlank() ->
                                 userViewModel.setError("Selecciona un país válido")
 
+                            grupoSeleccionado.isBlank() || grupoSeleccionado == "Selecciona tu grupo" ->
+                                userViewModel.setError("Selecciona un grupo válido")
+
                             else -> userViewModel.register(
-                                name, email, password, birthDate.toString(), paisSeleccionado
+                                name,
+                                email,
+                                password,
+                                birthDate.toString(),
+                                paisSeleccionado,
+                                grupoSeleccionado
                             ) {}
                         }
                     },
@@ -218,4 +262,3 @@ fun RegisterScreen(
         }
     }
 }
-

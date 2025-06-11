@@ -137,10 +137,10 @@ fun ComposeCuestionarioApp(userViewModel: UserViewModel, isAdmin: Boolean = fals
             MediaResultScreen(navController = navController)
         }
 
-        composable("comparison") {
-            ComparisonScreen(navController)
+        composable("comparison/{tipoTest}") { backStackEntry ->
+            val tipoTest = backStackEntry.arguments?.getString("tipoTest") ?: "amigos"
+            ComparisonScreen(navController, tipoTest)
         }
-
 
     }
 }

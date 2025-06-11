@@ -48,14 +48,23 @@ class UserViewModel(
                 onSuccess = {
                     FirebaseRepository.cargarDatosUsuario(
                         email = email,
-                        onSuccess = { name: String, birthDate: String ->
-                            saveUser(name, email, birthDate)
+                        onSuccess = { name: String, birthDate: String, grupo: String ->
                             comprobarPermisoAdmin(email) { esAdmin ->
-                                _error.value = null
-                                _isLoading.value = false
-                                _user.value =
-                                    _user.value?.copy(isAdmin = esAdmin, isLoggedIn = true)
-                                callback(true, esAdmin)
+                                viewModelScope.launch {
+                                    val userData = UserData(
+                                        name = name,
+                                        email = email,
+                                        birthDate = birthDate,
+                                        grupo = grupo,
+                                        isLoggedIn = true,
+                                        isAdmin = esAdmin
+                                    )
+                                    prefs.saveUserData(name, email, birthDate, grupo)
+                                    _user.value = userData
+                                    _error.value = null
+                                    _isLoading.value = false
+                                    callback(true, esAdmin)
+                                }
                             }
                         },
                         onError = { e: Exception ->
@@ -80,6 +89,7 @@ class UserViewModel(
         password: String,
         birthDate: String,
         pais: String,
+        grupo: String,
         onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
@@ -90,10 +100,14 @@ class UserViewModel(
                 password = password,
                 birthDate = birthDate,
                 pais = pais,
+                grupo = grupo,
                 onSuccess = {
-                    _isLoading.value = false
-                    _user.value = UserData(name, email, birthDate, isLoggedIn = true)
-                    onSuccess()
+                    viewModelScope.launch {
+                        prefs.saveUserData(name, email, birthDate, grupo)
+                        _isLoading.value = false
+                        _user.value = UserData(name, email, birthDate, grupo, isLoggedIn = true)
+                        onSuccess()
+                    }
                 },
                 onError = { e ->
                     _isLoading.value = false
@@ -103,22 +117,21 @@ class UserViewModel(
         }
     }
 
-    fun saveUser(name: String, email: String, birthDate: String) {
+    fun saveUser(name: String, email: String, birthDate: String, grupo: String) {
         viewModelScope.launch {
-            val userData = UserData(name, email, birthDate, isLoggedIn = true)
-            prefs.saveUserData(name, email, birthDate)
+            val userData = UserData(name, email, birthDate, grupo, isLoggedIn = true)
+            prefs.saveUserData(name, email, birthDate, grupo)
             _user.value = userData
         }
     }
 
-    fun saveUserWithLog(context: Context, name: String, email: String, birthDate: String) {
+    fun saveUserWithLog(context: Context, name: String, email: String, birthDate: String, grupo: String) {
         viewModelScope.launch {
-            val timestamp =
-                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
             val loginEntry = LoginEntry(name, email, birthDate, timestamp)
-            prefs.saveUserData(name, email, birthDate)
+            prefs.saveUserData(name, email, birthDate, grupo)
             logDao.saveLogin(loginEntry)
-            _user.value = UserData(name, email, birthDate, isLoggedIn = true)
+            _user.value = UserData(name, email, birthDate, grupo, isLoggedIn = true)
         }
     }
 

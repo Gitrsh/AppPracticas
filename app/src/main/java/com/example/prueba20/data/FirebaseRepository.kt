@@ -20,17 +20,26 @@ object FirebaseRepository {
         password: String,
         birthDate: String,
         pais: String,
+        grupo: String,
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
-        auth.createUserWithEmailAndPassword(email, password)
+        FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
             .addOnSuccessListener {
-                guardarUsuario(name, email, birthDate, pais, onSuccess, onError)
+                val userMap = hashMapOf(
+                    "nombre" to name,
+                    "email" to email,
+                    "fechaNacimiento" to birthDate,
+                    "pais" to pais,
+                    "grupo" to grupo
+                )
+                FirebaseFirestore.getInstance().collection("usuarios")
+                    .document(email)
+                    .set(userMap)
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { e -> onError(e) }
             }
-            .addOnFailureListener { e ->
-                Log.e("FirebaseAuth", "Error al registrar usuario", e)
-                onError(e)
-            }
+            .addOnFailureListener { e -> onError(e) }
     }
 
     fun iniciarSesion(
@@ -81,20 +90,21 @@ object FirebaseRepository {
     fun guardarRespuestas(
         email: String,
         respuestas: List<Int>,
-        tipoTest: String,  // Guarddamos este parametro nuevo para saber el tipo de test que es para guardarlo en su coleccion
+        tipoTest: String,
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
         val data = mapOf(
-            "email" to email,
+            "email" to email.lowercase(),
             "respuestas" to respuestas,
             "timestamp" to System.currentTimeMillis()
         )
 
         db.collection(tipoTest)
-            .add(data)
+            .document(email.lowercase()) // Sobrescribe por email
+            .set(data)
             .addOnSuccessListener {
-                Log.d("Firestore", "Respuestas guardadas en colección $tipoTest")
+                Log.d("Firestore", "Respuestas sobrescritas en colección $tipoTest")
                 onSuccess()
             }
             .addOnFailureListener { e ->
@@ -106,10 +116,10 @@ object FirebaseRepository {
     fun obtenerUsuarioActual(): String? {
         return auth.currentUser?.email
     }
-    
+
     fun cargarDatosUsuario(
         email: String,
-        onSuccess: (name: String, birthDate: String) -> Unit,
+        onSuccess: (name: String, birthDate: String, grupo: String) -> Unit,
         onError: (Exception) -> Unit
     ) {
         db.collection("usuarios")
@@ -119,13 +129,13 @@ object FirebaseRepository {
                 if (document.exists()) {
                     val name = document.getString("name") ?: ""
                     val birthDate = document.getString("birthDate") ?: ""
-                    onSuccess(name, birthDate)
+                    val grupo = document.getString("grupo") ?: ""
+                    onSuccess(name, birthDate, grupo)
                 } else {
                     onError(Exception("El usuario no existe en Firestore"))
                 }
             }
             .addOnFailureListener { e ->
-                Log.e("Firestore", "Error al cargar usuario", e)
                 onError(e)
             }
     }

@@ -18,6 +18,7 @@ object UserPrefsKeys {
     val NAME = stringPreferencesKey("name")
     val EMAIL = stringPreferencesKey("email")
     val BIRTHDATE = stringPreferencesKey("birthdate")
+    val GRUPO = stringPreferencesKey("grupo")
     val IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
 }
 
@@ -25,14 +26,14 @@ data class UserData(
     val name: String,
     val email: String,
     val birthDate: String,
+    val grupo: String = "",
     val isLoggedIn: Boolean = false,
-    val isAdmin: Boolean = false // <- NUEVO
+    val isAdmin: Boolean = false
 )
-
 
 /**
  * Maneja el almacenamiento local de datos del usuario usando DataStore.
- * Guarda: nombre, email, fecha de nacimiento y estado de sesión.
+ * Guarda: nombre, email, fecha de nacimiento, grupo y estado de sesión.
  */
 class UserPreferences(private val context: Context) {
     val userData: Flow<UserData> = context.dataStore.data
@@ -48,15 +49,17 @@ class UserPreferences(private val context: Context) {
                 name = prefs[UserPrefsKeys.NAME] ?: "",
                 email = prefs[UserPrefsKeys.EMAIL] ?: "",
                 birthDate = prefs[UserPrefsKeys.BIRTHDATE] ?: "",
+                grupo = prefs[UserPrefsKeys.GRUPO] ?: "",
                 isLoggedIn = prefs[UserPrefsKeys.IS_LOGGED_IN] ?: false
             )
         }
 
-    suspend fun saveUserData(name: String, email: String, birthDate: String) {
+    suspend fun saveUserData(name: String, email: String, birthDate: String, grupo: String) {
         context.dataStore.edit { prefs ->
             prefs[UserPrefsKeys.NAME] = name
             prefs[UserPrefsKeys.EMAIL] = email
             prefs[UserPrefsKeys.BIRTHDATE] = birthDate
+            prefs[UserPrefsKeys.GRUPO] = grupo
             prefs[UserPrefsKeys.IS_LOGGED_IN] = true
         }
     }
@@ -66,6 +69,7 @@ class UserPreferences(private val context: Context) {
             preferences[UserPrefsKeys.NAME] = ""
             preferences[UserPrefsKeys.EMAIL] = ""
             preferences[UserPrefsKeys.BIRTHDATE] = ""
+            preferences[UserPrefsKeys.GRUPO] = ""
             preferences[UserPrefsKeys.IS_LOGGED_IN] = false
         }
     }
