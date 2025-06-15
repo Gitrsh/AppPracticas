@@ -1,4 +1,3 @@
-package com.example.prueba20.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -7,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 import com.example.prueba20.data.DAOQuestions
+import com.example.prueba20.ui.screens.QuizScreenBase
 import com.example.prueba20.viewmodel.UserViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -23,8 +23,7 @@ fun QuizAmigosScreen(
         questions = questions,
         userViewModel = userViewModel,
         navController = navController,
-        tipoTest = "amigos", // nombre de la colección dnd se guradará
+        tipoTest = "amigos",
         onBack = onBack
     )
 }
-

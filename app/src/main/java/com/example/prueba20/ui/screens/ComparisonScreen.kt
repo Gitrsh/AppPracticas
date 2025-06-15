@@ -26,10 +26,22 @@ import kotlinx.coroutines.tasks.await
 import com.example.prueba20.data.model.ResultadoNivel
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.draw.clip
-
+import kotlinx.coroutines.launch
 
 @Composable
 fun ComparisonScreen(navController: NavController, tipoTest: String) {
+    // controla visibilidad del gráfico global
+    var mostrarGraficoGlobal by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    var mediasGlobales by remember { mutableStateOf<Map<String, Float>>(emptyMap()) }
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            mediasGlobales = obtenerMediasGlobales()
+        }
+    }
+
     Scaffold(
         topBar = {
             AppTopBar(
@@ -39,6 +51,7 @@ fun ComparisonScreen(navController: NavController, tipoTest: String) {
             )
         }
     ) { paddingValues ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -47,12 +60,28 @@ fun ComparisonScreen(navController: NavController, tipoTest: String) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
+
+            //  grafica de los tres tests con superposición
+            RadarChartTestsSection(
+                comparacionEntries = if (mostrarGraficoGlobal) getGlobalTestRadarEntries(mediasGlobales) else null
+            )
+
+            // Botón para alternar gráfico global
+            Button(
+                onClick = { mostrarGraficoGlobal = !mostrarGraficoGlobal },
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text(if (mostrarGraficoGlobal) "Ocultar gráfico global" else "Mostrar gráfico global")
+            }
+
             for (i in 0..3) {
                 ComparisonCard(preguntaNumero = i + 1, preguntaIndex = i, tipoTest = tipoTest)
             }
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -285,6 +314,7 @@ suspend fun obtenerDatosComparacion(
     )
 }
 
+
 fun calcularResultadoComparacion(promedio: Int): ResultadoNivel = when (promedio) {
     in 0..20 -> ResultadoNivel("Necesitas mejorar", "Nivel bajo.", Color(0xFFFF5252), "😔", listOf())
     in 21..40 -> ResultadoNivel("Puedes mejorar", "Margen de mejora.", Color(0xFFFF9800), "😐", listOf())
@@ -371,7 +401,7 @@ fun DistribucionGrafica(puntuacion: Float) {
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.Default.Person,
-                        contentDescription = "Icono temporal",
+                        contentDescription = "Icono usuario",
                         modifier = Modifier.size(16.dp),
                         tint = Color.Gray
                     )
@@ -379,4 +409,45 @@ fun DistribucionGrafica(puntuacion: Float) {
             }
         }
     }
+}
+
+fun getGlobalTestRadarEntries(medias: Map<String, Float>): List<TestRadarEntry> {
+    val labels = listOf("Amigos", "Familia", "Centro")
+    val tipos = listOf("amigos", "familia", "centro_educativo")
+
+    return tipos.mapIndexed { i, tipo ->
+        val valor = medias[tipo]
+        if (valor != null) {
+            TestRadarEntry(labels[i], valor)
+        } else {
+            TestRadarEntry(labels[i], 0f)
+        }
+    }
+}
+
+suspend fun obtenerMediasGlobales(): Map<String, Float> {
+    val db = FirebaseFirestore.getInstance()
+    val colecciones = listOf("amigos", "familia", "centro_educativo")
+    val medias = mutableMapOf<String, Float>()
+
+    for (coleccion in colecciones) {
+        val snapshot = db.collection(coleccion).get().await()
+        val respuestasTotales = snapshot.documents
+            .mapNotNull { it.get("respuestas") as? List<*> }
+            .mapNotNull { respuestas ->
+                val promedio = respuestas
+                    .mapNotNull { it as? Number }
+                    .map { it.toFloat() }
+                    .average()
+                if (promedio.isNaN()) null else promedio.toFloat()
+            }
+
+        if (respuestasTotales.isNotEmpty()) {
+            medias[coleccion] = respuestasTotales.average().toFloat()
+        } else {
+            medias[coleccion] = 0f
+        }
+    }
+
+    return medias
 }

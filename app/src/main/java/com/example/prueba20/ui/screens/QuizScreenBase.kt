@@ -3,9 +3,9 @@ package com.example.prueba20.ui.screens
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,21 +16,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.prueba20.data.FirebaseRepository
-import com.example.prueba20.data.model.ResultadoNivel
-import com.example.prueba20.ui.theme.AppTheme
-import com.example.prueba20.ui.theme.AppTopBar
-import com.example.prueba20.ui.theme.PrimaryButton
-import com.example.prueba20.ui.theme.SecondaryButton
+import com.example.prueba20.ui.theme.*
+import com.example.prueba20.util.QuizSessionState
 import com.example.prueba20.viewmodel.UserViewModel
 import kotlin.math.roundToInt
-import com.example.prueba20.util.QuizSessionState
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,7 +35,7 @@ fun QuizScreenBase(
     questions: List<String>,
     userViewModel: UserViewModel,
     navController: NavController,
-    tipoTest: String, // parametro nuevo para guardar cada test en su correspondiente colección
+    tipoTest: String,
     onBack: () -> Unit = {}
 ) {
     if (questions.isEmpty()) {
@@ -49,6 +45,7 @@ fun QuizScreenBase(
         return
     }
 
+    val context = LocalContext.current
     var currentQuestionIndex by remember { mutableStateOf(0) }
     var numericAnswer by remember { mutableStateOf<Float?>(null) }
     val responses = remember { mutableStateMapOf<Int, Int>() }
@@ -97,21 +94,34 @@ fun QuizScreenBase(
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = AppTheme.Elevation.sm
-                    )
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    elevation = CardDefaults.cardElevation(defaultElevation = AppTheme.Elevation.sm)
                 ) {
                     Column(modifier = Modifier.padding(AppTheme.Spacing.lg)) {
+                        val resourceName = "${tipoTest.lowercase()}_${currentQuestionIndex + 1}"
+                        val imageResId = remember(resourceName) {
+                            context.resources.getIdentifier(resourceName, "drawable", context.packageName)
+                        }
+
+                        if (imageResId != 0) {
+                            Image(
+                                painter = painterResource(id = imageResId),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+                            Spacer(modifier = Modifier.height(AppTheme.Spacing.md))
+                        }
+
                         Text(
                             text = currentQuestion,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                             modifier = Modifier.padding(bottom = AppTheme.Spacing.md)
                         )
 
-                        val sliderColor: Color = numericAnswer?.let {
+                        val sliderColor = numericAnswer?.let {
                             when (it.roundToInt()) {
                                 in 0..30 -> MaterialTheme.colorScheme.error
                                 in 40..70 -> Color(0xFFFF9800)
@@ -120,7 +130,7 @@ fun QuizScreenBase(
                             }
                         } ?: MaterialTheme.colorScheme.onSurfaceVariant
 
-                        val emoji: String = numericAnswer?.let {
+                        val emoji = numericAnswer?.let {
                             when (it.roundToInt()) {
                                 in 0..30 -> "😞"
                                 in 40..70 -> "😐"
@@ -208,9 +218,7 @@ fun QuizScreenBase(
                 ) {
                     SecondaryButton(
                         text = "Anterior",
-                        onClick = {
-                            if (currentQuestionIndex > 0) currentQuestionIndex--
-                        },
+                        onClick = { if (currentQuestionIndex > 0) currentQuestionIndex-- },
                         modifier = Modifier.weight(1f)
                     )
 
@@ -229,28 +237,25 @@ fun QuizScreenBase(
                                         hasInteracted = false
                                     } else {
                                         val numericResponses = responses.map { it.value }
-                                        val average = if (numericResponses.isNotEmpty()) numericResponses.sum() / numericResponses.size else 0
+                                        val average = if (numericResponses.isNotEmpty())
+                                            numericResponses.sum() / numericResponses.size else 0
 
                                         Log.d("QuizSession", "Guardando media: $average")
                                         Log.d("QuizSession", "Respuestas: $numericResponses")
 
-                                        QuizSessionState.sessionResults.add(average)
+                                        QuizSessionState.resultadosPorTipo[tipoTest] = average
                                         QuizSessionState.respuestasPorTest.add(numericResponses)
 
                                         val email = user?.email ?: "anonimo@desconocido"
                                         FirebaseRepository.guardarRespuestas(
                                             email = email,
                                             respuestas = numericResponses,
-                                            tipoTest = tipoTest, // ← parámetro añadido
+                                            tipoTest = tipoTest,
                                             onSuccess = { Log.d("Firestore", "Guardado exitosamente") },
                                             onError = { e -> Log.e("Firestore", "Error al guardar", e) }
                                         )
                                         quizFinished = true
                                     }
-                                }
-
-                                        if (currentQuestionIndex == questions.lastIndex) {
-
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
@@ -258,127 +263,12 @@ fun QuizScreenBase(
                     }
                 }
             } else {
-                val lastAverage = QuizSessionState.sessionResults.lastOrNull() ?: 0
-
-                val resultado = when (lastAverage) {
-                    in 0..20 -> ResultadoNivel("Necesitas mejorar", "Tu nivel de actividad física es muy bajo. Te recomendamos comenzar con pequeñas rutinas diarias y aumentar gradualmente.", MaterialTheme.colorScheme.error, "😔", listOf(Color(0xFFFF5252), Color(0xFFFF867F)))
-                    in 21..40 -> ResultadoNivel("Puedes mejorar", "Estás comenzando, pero hay mucho margen para mejorar. Intenta incorporar más actividad física en tu rutina.", Color(0xFFFF9800), "😐", listOf(Color(0xFFFF9800), Color(0xFFFFC46B)))
-                    in 41..50 -> ResultadoNivel("Estás en el camino", "Vas por buen camino, pero aún puedes mejorar. Sigue esforzándote y verás los resultados.", Color(0xFFFFC107), "🙂", listOf(Color(0xFFFFC107), Color(0xFFFFEB3B)))
-                    in 51..75 -> ResultadoNivel("¡Buen trabajo!", "Mantienes un buen nivel de actividad física. Sigue así y considera nuevos desafíos.", Color(0xFF4CAF50), "😊", listOf(Color(0xFF4CAF50), Color(0xFF8BC34A)))
-                    in 76..90 -> ResultadoNivel("¡Excelente!", "Tu nivel de actividad física es muy bueno. Eres un ejemplo a seguir para otros.", Color(0xFF2196F3), "😍", listOf(Color(0xFF2196F3), Color(0xFF64B5F6)))
-                    else -> ResultadoNivel("¡Increíble!", "Eres un atleta. Tu nivel de actividad física es excepcional. ¡Sigue inspirando a otros!", Color(0xFF9C27B0), "🤩", listOf(Color(0xFF9C27B0), Color(0xFFBA68C8)))
-                }
-
-                val (title, message, color, emoji, gradientColors) = resultado
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(AppTheme.Spacing.lg)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(280.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Brush.verticalGradient(colors = gradientColors)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(emoji, style = MaterialTheme.typography.displayLarge)
-                            Text("$lastAverage%", style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.ExtraBold), color = Color.White)
-                            Text(title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = Color.White)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 24.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        shadowElevation = AppTheme.Elevation.md,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                "Detalle de tus respuestas",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                            responses.values.forEachIndexed { index, value ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Pregunta ${index + 1}")
-                                    Text(
-                                        "$value%",
-                                        fontWeight = FontWeight.Bold,
-                                        color = when {
-                                            value < 30 -> MaterialTheme.colorScheme.error
-                                            value < 70 -> Color(0xFFFF9800)
-                                            else -> Color(0xFF4CAF50)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    PrimaryButton(
-                        text = "Elegir otro test",
-                        onClick = {
-                            navController.navigate("quiz_selection") {
-                                popUpTo("quiz") { inclusive = true }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    SecondaryButton(
-                        text = "Ver media de todos los tests",
-                        onClick = {
-                            navController.navigate("media_result")
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    PrimaryButton(
-                        text = "Comparar",
-                        onClick = {
-                            navController.navigate("comparison/$tipoTest")
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    )
-                }
+                QuizResultView(
+                    average = QuizSessionState.resultadosPorTipo[tipoTest] ?: 0,
+                    responses = responses,
+                    navController = navController,
+                    tipoTest = tipoTest
+                )
             }
         }
     }

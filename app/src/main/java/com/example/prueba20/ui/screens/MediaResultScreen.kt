@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +48,8 @@ fun MediaResultScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center
             )
+
+            val comparacionesGlobales = remember { mutableStateMapOf<Int, List<Int>?>() }
 
             QuizSessionState.respuestasPorTest.forEachIndexed { index, respuestas ->
                 val promedio = respuestas.average().toInt()
@@ -100,7 +104,8 @@ fun MediaResultScreen(navController: NavController) {
             }
 
             // Media total
-            val mediaGlobal = if (QuizSessionState.sessionResults.isNotEmpty()) QuizSessionState.sessionResults.sum() / QuizSessionState.sessionResults.size else 0
+            val medias = QuizSessionState.resultadosPorTipo.values
+            val mediaGlobal = if (medias.isNotEmpty()) medias.sum() / medias.size else 0
             val resultadoGlobal = calcularResultado(mediaGlobal)
 
             Text(

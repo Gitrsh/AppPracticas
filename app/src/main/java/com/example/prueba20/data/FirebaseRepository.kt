@@ -1,6 +1,7 @@
 package com.example.prueba20.data
 
 import android.util.Log
+import com.example.prueba20.util.QuizSessionState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -139,4 +140,7 @@ object FirebaseRepository {
                 onError(e)
             }
     }
+
+
+
 }
