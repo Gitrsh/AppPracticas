@@ -46,33 +46,7 @@ class UserViewModel(
                 email = email,
                 password = password,
                 onSuccess = {
-                    FirebaseRepository.cargarDatosUsuario(
-                        email = email,
-                        onSuccess = { name: String, birthDate: String, grupo: String ->
-                            comprobarPermisoAdmin(email) { esAdmin ->
-                                viewModelScope.launch {
-                                    val userData = UserData(
-                                        name = name,
-                                        email = email,
-                                        birthDate = birthDate,
-                                        grupo = grupo,
-                                        isLoggedIn = true,
-                                        isAdmin = esAdmin
-                                    )
-                                    prefs.saveUserData(name, email, birthDate, grupo)
-                                    _user.value = userData
-                                    _error.value = null
-                                    _isLoading.value = false
-                                    callback(true, esAdmin)
-                                }
-                            }
-                        },
-                        onError = { e: Exception ->
-                            _error.value = e.message
-                            _isLoading.value = false
-                            callback(false, false)
-                        }
-                    )
+                    cargarDatosUsuarioDesdeFirestore(email, callback)
                 },
                 onError = { e ->
                     _error.value = "Error de inicio de sesión: ${e.message}"
@@ -81,6 +55,40 @@ class UserViewModel(
                 }
             )
         }
+    }
+
+    private fun cargarDatosUsuarioDesdeFirestore(email: String, callback: (Boolean, Boolean) -> Unit) {
+        FirebaseFirestore.getInstance()
+            .collection("usuarios")
+            .document(email)
+            .get()
+            .addOnSuccessListener { document ->
+                val name = document.getString("nombre") ?: ""
+                val birthDate = document.getString("fechaNacimiento") ?: ""
+                val grupo = document.getString("grupo") ?: ""
+                val esAdmin = document.getBoolean("permiso_admin") ?: false
+
+                viewModelScope.launch {
+                    prefs.saveUserData(name, email, birthDate, grupo)
+                    val userData = UserData(
+                        name = name,
+                        email = email,
+                        birthDate = birthDate,
+                        grupo = grupo,
+                        isLoggedIn = true,
+                        isAdmin = esAdmin
+                    )
+                    _user.value = userData
+                    _error.value = null
+                    _isLoading.value = false
+                    callback(true, esAdmin)
+                }
+            }
+            .addOnFailureListener { e ->
+                _error.value = e.message
+                _isLoading.value = false
+                callback(false, false)
+            }
     }
 
     fun register(

@@ -153,7 +153,8 @@ fun ComposeCuestionarioApp(userViewModel: UserViewModel, isAdmin: Boolean = fals
                 questions = questions,
                 userViewModel = userViewModel,
                 navController = navController,
-                tipoTest = tipoTest
+                tipoTest = tipoTest,
+                onBack = { navController.popBackStack() }
             )
         }
     }
