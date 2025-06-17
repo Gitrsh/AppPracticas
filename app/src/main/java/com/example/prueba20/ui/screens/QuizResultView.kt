@@ -90,6 +90,7 @@ fun QuizResultView(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
+                val titulos = listOf("Motivación", "Confianza", "Competencia", "Comprensión")
                 responses.values.forEachIndexed { index, value ->
                     Row(
                         modifier = Modifier
@@ -97,7 +98,7 @@ fun QuizResultView(
                             .padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Pregunta ${index + 1}")
+                        Text("Pregunta ${index + 1}. ${titulos.getOrElse(index) { "Sin título" }}")
                         Text(
                             "$value%",
                             fontWeight = FontWeight.Bold,
