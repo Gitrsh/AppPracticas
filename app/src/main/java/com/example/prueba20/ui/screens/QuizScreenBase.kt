@@ -6,6 +6,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -64,11 +65,23 @@ fun QuizScreenBase(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
+        val scrollState = rememberScrollState()
+
+        val columnModifier = if (!quizFinished) {
+            Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(AppTheme.Spacing.lg),
+                .padding(AppTheme.Spacing.lg)
+                .verticalScroll(scrollState)
+        } else {
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(AppTheme.Spacing.lg)
+        }
+
+        Column(
+            modifier = columnModifier,
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
