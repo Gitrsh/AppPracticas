@@ -129,22 +129,22 @@ fun ComposeCuestionarioApp(userViewModel: UserViewModel, isAdmin: Boolean = fals
 
             val questions = when (tipoTest) {
                 "familia" -> listOf(
-                    "¿Participas en actividades físicas en casa?",
-                    "¿Tu familia promueve el ejercicio?",
-                    "¿Haces ejercicio con tus padres o hermanos?",
-                    "¿Dispones de espacio para moverte en casa?"
+                    "Cuando estoy con mi familia, siento que fomentan y me dan oportunidades para motivarme hacia la actividad física",
+                    "Cuando estoy con mi familia, siento que fomentan y me dan oportunidades para tener confianza hacia la actividad física.",
+                    "Cuando estoy con mi familia, siento que fomentan y me dan oportunidades para mejorar mi competencia física.",
+                    "Cuando estoy con mi familia, siento que fomentan y me dan oportunidades para comprender mejor los contenidos de Educación Física."
                 )
                 "amigos" -> listOf(
-                    "¿Tus amigos practican deportes?",
-                    "¿Quedas con amigos para jugar al aire libre?",
-                    "¿Te motivan tus amigos a hacer ejercicio?",
-                    "¿Participas en juegos activos con amigos?"
+                    "Cuando estoy con mis amigos/as, siento que fomentan y me dan oportunidades para motivarme hacia la actividad .",
+                    "Cuando estoy con mis amigos/as, siento que fomentan y me dan oportunidades para tener confianza hacia la actividad física.",
+                    "Cuando estoy con mis amigos/as, siento que fomentan y me dan oportunidades para mejorar mi competencia física.",
+                    "Cuando estoy con mis amigos/as, siento que fomentan y me dan oportunidades para conocer y comprender mejor los contenidos de Educación Física."
                 )
                 "centro_educativo" -> listOf(
-                    "¿Participas en educación física con interés?",
-                    "¿Tu centro organiza actividades deportivas?",
-                    "¿Tienes oportunidades para moverte en el recreo?",
-                    "¿Tienes acceso a instalaciones deportivas en el colegio?"
+                    "Cuando estoy en mi centro educativo, siento que fomentan y me dan oportunidades para motivarme hacia la actividad física",
+                    "Cuando estoy en mi centro educativo, siento que fomentan y me dan oportunidades para tener confianza hacia la actividad física.",
+                    "Cuando estoy en mi centro educativo, siento que fomentan y me dan oportunidades para mejorar mi competencia física.",
+                    "Cuando estoy en mi centro educativo, siento que fomentan y me dan oportunidades para conocer y comprender mejor los contenidos de Educación Física."
                 )
                 else -> emptyList()
             }
@@ -159,5 +159,3 @@ fun ComposeCuestionarioApp(userViewModel: UserViewModel, isAdmin: Boolean = fals
         }
     }
 }
-
-

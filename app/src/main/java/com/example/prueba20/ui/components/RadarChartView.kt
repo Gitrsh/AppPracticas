@@ -20,7 +20,7 @@ import android.graphics.Paint
 fun RadarChartView(
     valores: List<Int>,
     valoresComparacion: List<Int>? = null,
-    labels: List<String> = listOf("Pregunta 1", "Pregunta 2", "Pregunta 3", "Pregunta 4"),
+    labels: List<String> = listOf("Motivación", "Confianza", "Competencia", "Comprensión"),//cambiado
     modifier: Modifier = Modifier,
     chartSize: Dp = 180.dp,
     labelTextSize: TextUnit = 12.sp

@@ -30,7 +30,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ComparisonScreen(navController: NavController, tipoTest: String) {
-    // controla visibilidad del gráfico global
     var mostrarGraficoGlobal by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
@@ -61,13 +60,10 @@ fun ComparisonScreen(navController: NavController, tipoTest: String) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-
-            //  grafica de los tres tests con superposición
             RadarChartTestsSection(
                 comparacionEntries = if (mostrarGraficoGlobal) getGlobalTestRadarEntries(mediasGlobales) else null
             )
 
-            // Botón para alternar gráfico global
             Button(
                 onClick = { mostrarGraficoGlobal = !mostrarGraficoGlobal },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -75,17 +71,22 @@ fun ComparisonScreen(navController: NavController, tipoTest: String) {
                 Text(if (mostrarGraficoGlobal) "Ocultar gráfico global" else "Mostrar gráfico global")
             }
 
-            for (i in 0..3) {
-                ComparisonCard(preguntaNumero = i + 1, preguntaIndex = i, tipoTest = tipoTest)
+            val titulosPreguntas = listOf("Motivación", "Confianza", "Competencia", "Comprensión")
+
+            titulosPreguntas.forEachIndexed { index, titulo ->
+                ComparisonCard(
+                    preguntaTitulo = "Pregunta ${index + 1}: $titulo",
+                    preguntaIndex = index,
+                    tipoTest = tipoTest
+                )
             }
         }
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ComparisonCard(preguntaNumero: Int, preguntaIndex: Int, tipoTest: String) {
+fun ComparisonCard(preguntaTitulo: String, preguntaIndex: Int, tipoTest: String) {
     var selectedCategory by remember { mutableStateOf("Global") }
     var puntuacionUsuario by remember { mutableStateOf<Float?>(null) }
     var mediana by remember { mutableStateOf<Float?>(null) }
@@ -147,7 +148,7 @@ fun ComparisonCard(preguntaNumero: Int, preguntaIndex: Int, tipoTest: String) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Pregunta $preguntaNumero", style = MaterialTheme.typography.titleMedium)
+            Text(preguntaTitulo, style = MaterialTheme.typography.titleMedium)
 
             Column(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
