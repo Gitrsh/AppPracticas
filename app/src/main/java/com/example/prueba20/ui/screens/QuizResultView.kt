@@ -98,7 +98,7 @@ fun QuizResultView(
                             .padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Pregunta ${index + 1}. ${titulos.getOrElse(index) { "Sin título" }}")
+                        Text("Preg. ${index + 1}. ${titulos.getOrElse(index) { "Sin título" }}")
                         Text(
                             "$value%",
                             fontWeight = FontWeight.Bold,
